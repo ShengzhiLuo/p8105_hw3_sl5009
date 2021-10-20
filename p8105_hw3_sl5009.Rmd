@@ -21,9 +21,9 @@ library(tidyverse)
 library(dplyr)
 
 knitr::opts_chunk$set(
-  fig.width = 10,
+  fig.width = 15,
   fig.asp = .8,
-  out.width = "120%"
+  out.width = "150%"
 )
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
@@ -98,9 +98,7 @@ data("brfss_smart2010")
 brfss_smart2010_OH=
   brfss_smart2010 %>% 
   filter(Topic=="Overall Health") %>% 
-  mutate(
-    Response=factor(Response,ordered=TRUE,levels = c("Poor","Fair","Good","Very good","Excellent"))
-  ) %>% 
+  mutate(Response = forcats::fct_relevel(Response, c("Poor","Fair","Good","Very good","Excellent"))) %>%
   arrange(Response)
 ```
 In 2002, which states were observed at 7 or more locations? What about in 2010?
@@ -139,5 +137,25 @@ brfss_smart2010_OH_mean %>%
     geom_point() + geom_line() + 
     theme(legend.position = "bottom")
 ```
+
+
+Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+
+```{r}
+brfss_smart2010_OH %>% 
+  filter(Locationabbr=="NY",Year==c("2006","2010")) %>% 
+  ggplot(aes(x =Data_value, fill = Response)) +
+  geom_density(alpha = .5) + 
+  facet_grid(~Year) + 
+  viridis::scale_fill_viridis(discrete = TRUE)
+```
+
+## Problem 3
+
+```{r}
+
+```
+
+
 
 
