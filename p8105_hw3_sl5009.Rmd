@@ -92,30 +92,31 @@ mean_instacart
 ```{r}
 library(p8105.datasets)
 data("brfss_smart2010")
+brfss_smart2010=janitor::clean_names(brfss_smart2010)
 ```
 
 ```{r}
 brfss_smart2010_OH=
   brfss_smart2010 %>% 
-  filter(Topic=="Overall Health") %>% 
-  mutate(Response = forcats::fct_relevel(Response, c("Poor","Fair","Good","Very good","Excellent"))) %>%
-  arrange(Response)
+  filter(topic=="Overall Health") %>% 
+  mutate(response = forcats::fct_relevel(response, c("Poor","Fair","Good","Very good","Excellent"))) %>%
+  arrange(year,locationabbr,response)
 ```
 In 2002, which states were observed at 7 or more locations? What about in 2010?
 
 ```{r}
 brfss_smart2010_OH %>% 
-  filter(Year=="2002") %>% 
-  group_by(Locationabbr) %>% 
-  distinct(Locationdesc) %>% 
-  summarise(Location_obs=n()) %>% 
-  filter(Location_obs>=7)
+  filter(year=="2002") %>% 
+  group_by(locationabbr) %>% 
+  distinct(locationdesc) %>% 
+  summarise(location_obs=n()) %>% 
+  filter(location_obs>=7)
 brfss_smart2010_OH %>% 
-  filter(Year=="2010") %>% 
-  group_by(Locationabbr) %>% 
-  distinct(Locationdesc) %>% 
-  summarise(Location_obs=n()) %>% 
-  filter(Location_obs>=7)
+  filter(year=="2010") %>% 
+  group_by(locationabbr) %>% 
+  distinct(locationdesc) %>% 
+  summarise(location_obs=n()) %>% 
+  filter(location_obs>=7)
 ```
 
 Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
@@ -123,17 +124,17 @@ Construct a dataset that is limited to Excellent responses, and contains, year, 
 ```{r}
 brfss_smart2010_OH_mean=
   brfss_smart2010_OH %>% 
-  filter(Response=="Excellent") %>% 
-  group_by(Year,Locationabbr) %>% 
+  filter(response=="Excellent") %>% 
+  group_by(year,locationabbr) %>% 
   summarise(
-    mean_data=mean(Data_value)
+    mean_data=mean(data_value)
   ) %>% 
   mutate(
     mean_data=round(mean_data,digits = 2)
   )
 brfss_smart2010_OH_mean
 brfss_smart2010_OH_mean %>% 
-  ggplot(aes(x = Locationabbr, y = mean_data, color = Year)) + 
+  ggplot(aes(x = locationabbr, y = mean_data, color = year)) + 
     geom_point() + geom_line() + 
     theme(legend.position = "bottom")
 ```
@@ -143,19 +144,46 @@ Make a two-panel plot showing, for the years 2006, and 2010, distribution of dat
 
 ```{r}
 brfss_smart2010_OH %>% 
-  filter(Locationabbr=="NY",Year==c("2006","2010")) %>% 
-  ggplot(aes(x =Data_value, fill = Response)) +
+  filter(locationabbr=="NY",year==c("2006","2010")) %>% 
+  ggplot(aes(x =data_value, fill = response)) +
   geom_density(alpha = .5) + 
-  facet_grid(~Year) + 
+  facet_grid(~year) + 
   viridis::scale_fill_viridis(discrete = TRUE)
 ```
 
 ## Problem 3
 
-```{r}
+Load, tidy, and otherwise wrangle the data. Your final dataset should include all originally observed variables and values; have useful variable names; include a weekday vs weekend variable; and encode data with reasonable variable classes. Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
 
+```{r}
+accel_data=
+  read.csv("accel_data.csv") %>% 
+  mutate_if(is.numeric, round, 1) %>%
+  #group_by(week) %>% 
+  #mutate(day = forcats::fct_relevel(day, c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"))) %>%
+  #arrange(week,day) %>% 
+  mutate(weekday_or_weekend=ifelse(day %in% c("Saturday", "Sunday"), "weekend", "weekday")) %>% 
+  relocate(weekday_or_weekend,.after = day)
+accel_data  
 ```
 
+Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
 
+```{r}
+sum_of_day=
+  accel_data %>% 
+  mutate(total_activity = rowSums(.[5:1444])) %>% 
+  select(week,day_id,day,weekday_or_weekend,total_activity) %>% 
+  arrange(desc(total_activity))
+sum_of_day
+```
+
+Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
+```{r}
+sum_of_day %>%
+  ggplot(aes(x = day_id, y = total_activity, color = day)) + 
+  geom_point(alpha = .5) +
+  theme(legend.position = "bottom")
+```
 
 
