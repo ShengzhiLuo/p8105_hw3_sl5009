@@ -101,6 +101,7 @@ brfss_smart2010_OH=
   filter(topic=="Overall Health") %>% 
   mutate(response = forcats::fct_relevel(response, c("Poor","Fair","Good","Very good","Excellent"))) %>%
   arrange(year,locationabbr,response)
+brfss_smart2010_OH
 ```
 In 2002, which states were observed at 7 or more locations? What about in 2010?
 
@@ -159,12 +160,15 @@ Load, tidy, and otherwise wrangle the data. Your final dataset should include al
 accel_data=
   read.csv("accel_data.csv") %>% 
   mutate_if(is.numeric, round, 1) %>%
-  #group_by(week) %>% 
-  #mutate(day = forcats::fct_relevel(day, c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"))) %>%
-  #arrange(week,day) %>% 
   mutate(weekday_or_weekend=ifelse(day %in% c("Saturday", "Sunday"), "weekend", "weekday")) %>% 
-  relocate(weekday_or_weekend,.after = day)
-accel_data  
+  relocate(weekday_or_weekend,.after = day) %>% 
+  pivot_longer(
+    activity.1:activity.1440,
+    names_to = "over_a_day", 
+    names_prefix = "activity.",
+    values_to = "activity"
+  ) 
+accel_data
 ```
 
 Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
@@ -172,18 +176,21 @@ Traditional analyses of accelerometer data focus on the total activity over the 
 ```{r}
 sum_of_day=
   accel_data %>% 
-  mutate(total_activity = rowSums(.[5:1444])) %>% 
-  select(week,day_id,day,weekday_or_weekend,total_activity) %>% 
+  group_by(day_id) %>% 
+  summarise(total_activity=sum(activity)) %>% 
   arrange(desc(total_activity))
 sum_of_day
 ```
 
 Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
 ```{r}
-sum_of_day %>%
-  ggplot(aes(x = day_id, y = total_activity, color = day)) + 
-  geom_point(alpha = .5) +
-  theme(legend.position = "bottom")
+accel_data_24h=
+  accel_data %>% 
+  group_by(day_id) %>% 
+  ggplot(aes(x =over_a_day, y =activity, color = day)) + 
+    geom_point() + geom_line() + 
+    theme(legend.position = "bottom")
+accel_data_24h
 ```
 
 
